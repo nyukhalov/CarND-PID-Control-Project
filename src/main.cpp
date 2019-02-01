@@ -35,7 +35,7 @@ int main() {
 
   const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
-  PID steer_pid(0.1, 0, 0);
+  PID steer_pid(0.1, 0, 0.1);
 
   h.onMessage([&speed_pid, &steer_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
