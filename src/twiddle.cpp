@@ -172,7 +172,7 @@ int main() {
           // double angle = std::stod(j[1]["steering_angle"].get<string>());
 
           if (speed <= 5) stuck_counter++;
-          if (stuck_counter >= 20) {
+          if (stuck_counter >= 200) {
             stuck_counter = 0;
             twiddle.force_stop_stage();
           }
