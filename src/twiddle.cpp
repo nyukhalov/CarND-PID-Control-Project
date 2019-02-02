@@ -104,6 +104,11 @@ public:
     return cur_iter == num_iter;
   }
 
+  void force_stop_stage() {
+    cur_iter = num_iter;
+    mse = 999999999;
+  }
+
   void update_mse(double cte) {
     mse += cte*cte;
   }
@@ -143,10 +148,11 @@ int main() {
   // const int num_iter = 4500; // full loop at 20 MPH
   Twiddle twiddle(num_iter);
 
+  int stuck_counter = 0;
   const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
 
-  h.onMessage([&twiddle, &speed_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
+  h.onMessage([&twiddle, &speed_pid, desired_speed, &stuck_counter](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -165,6 +171,18 @@ int main() {
           double speed = std::stod(j[1]["speed"].get<string>());
           // double angle = std::stod(j[1]["steering_angle"].get<string>());
 
+          if (speed <= 5) stuck_counter++;
+          if (stuck_counter >= 20) {
+            stuck_counter = 0;
+            twiddle.force_stop_stage();
+          }
+
+          bool reset = false;
+          if (twiddle.stage_completed()) {
+            reset = true;
+            twiddle.next_stage();
+          }
+
           double speed_cte = speed - desired_speed;
           speed_pid.UpdateError(speed_cte);
           double throttle = -speed_pid.TotalError();
@@ -175,12 +193,6 @@ int main() {
           double steer_value = -twiddle.steer_pid.TotalError();
 
           twiddle.update_mse(cte);
-
-          bool reset = false;
-          if (twiddle.stage_completed()) {
-            reset = true;
-            twiddle.next_stage();
-          }
           
           string msg;
           json msgJson;
