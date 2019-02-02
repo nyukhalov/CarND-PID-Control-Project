@@ -1,8 +1,10 @@
 #include <math.h>
 #include <uWS/uWS.h>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
+#include <stdio.h>
 #include "json.hpp"
 #include "PID.h"
 
@@ -36,9 +38,53 @@ class Context {
 public:
 
   void next_stage() {
+    stage_no++;
+
+    double d_sum = 0;
+    for(int i=0; i<d.size(); i++) d_sum += d[i];
+
+    cout << left
+         << "stage_no=" << setw(5) << stage_no 
+         << ", d_sum=" << setw(8) << d_sum 
+         << ", best_err=" << setw(8) << best_error 
+         << ", MSE=" << setw(9) << get_mse() 
+         << ", p={" 
+          << setw(5)<< params[0] << ", " 
+          << setw(5)<< params[1] << ", " 
+          << setw(5)<< params[2] << "}"
+         << ", d={" 
+          << setw(5) << d[0] << ", " 
+          << setw(5) << d[1] << ", " 
+          << setw(5) << d[2] << "}" 
+        << std::endl;
+
+    double err = get_mse();
+    if (best_error < 0 || err < best_error) 
+    {
+      best_error = err;
+      dir_idx = 0;
+      
+      // it is not the first run
+      if (best_error >= 0) {
+        d[param_idx] *= 1.1;
+        param_idx = (param_idx + 1) % max_param_idx;
+      }
+    }
+    else
+    {
+      dir_idx++;
+      if (dir_idx >= max_dir_idx - 1)
+      {
+        double dir = d_dir[dir_idx];
+        params[param_idx] += dir * d[param_idx];
+        param_idx = (param_idx + 1) % max_param_idx;  
+        dir_idx = 0;
+      }
+    }
+
     // reinit state
     mse = 0.0;
-    best_error = 0.0;
+    cur_iter = 0;
 
     // update params
     double dir = d_dir[dir_idx];
@@ -46,18 +92,14 @@ public:
 
     // re-create PID Controller
     steer_pid = PID(params[0], params[1], params[2]);
-
-    // update d
-    dir_idx++;
-    if (dir_idx > max_dir_idx) {
-      dir_idx = 0;
-      param_idx = (param_idx + 1) % max_param_idx;
-    }
-
   }
 
   bool stage_completed() {
     return cur_iter == num_iter;
+  }
+
+  void update_mse(double cte) {
+    mse += cte*cte;
   }
 
   double get_mse() {
@@ -73,6 +115,8 @@ public:
   vector<double> d = {1, 1, 1};
   vector<double> d_dir = {1, -2, 1};
 
+  int stage_no = 0;
+
   const int num_iter = 500;
   // const int num_iter = 4500; // full loop at 20 MPH
   int cur_iter = 0;
@@ -83,7 +127,7 @@ public:
   const int max_dir_idx = d_dir.size();
   int dir_idx = 0;
 
-  double best_error = 0.0;
+  double best_error = -1; // initial state
 
   PID steer_pid = PID(0.1, 0, 0.1);
 };
@@ -119,32 +163,32 @@ int main() {
           double throttle = -speed_pid.TotalError();
           
           ctx.cur_iter++;
-          std::cout << "Iter: " << ctx.cur_iter << std::endl;
+          // std::cout << "iter=" << ctx.cur_iter << ", MSE=" << ctx.get_mse() << std::endl;
 
-          if (ctx.stage_completed()) {
-            ctx.next_stage();
-          }
-
-          
           ctx.steer_pid.UpdateError(cte);
           double steer_value = -ctx.steer_pid.TotalError();
+          // std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
+          ctx.update_mse(cte);
 
-
-          // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
-
+          bool reset = false;
+          if (ctx.stage_completed()) {
+            //std::cout << "Stage completed. Reset state. Number of iterations per run=" << ctx.num_iter << std::endl;
+            reset = true;
+            ctx.next_stage();
+          }
+          
           string msg;
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle;
           msg = "42[\"steer\"," + msgJson.dump() + "]";
 
-          // if (speed >= 19) {
-            // msg = "42[\"reset\",{}]";
-          // }
+          if (reset) {
+            msg = "42[\"reset\",{}]";
+          }
 
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }  // end "telemetry" if
       } else {
@@ -156,7 +200,7 @@ int main() {
   }); // end h.onMessage
 
   h.onConnection([](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
+    // std::cout << "Connected!!!" << std::endl;
   });
 
   h.onDisconnection([](uWS::WebSocket<uWS::SERVER> ws, int code, 
