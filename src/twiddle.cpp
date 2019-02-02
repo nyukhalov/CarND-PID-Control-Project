@@ -34,8 +34,12 @@ string hasData(string s) {
   return "";
 }
 
-class Context {
+class Twiddle {
 public:
+
+  Twiddle(int num_iter)
+  : num_iter(num_iter)
+  {}
 
   void next_stage() {
     stage_no++;
@@ -45,8 +49,8 @@ public:
 
     cout << left
          << "stage_no=" << setw(5) << stage_no 
-         << ", d_sum=" << setw(8) << d_sum 
-         << ", best_err=" << setw(8) << best_error 
+         << ", d_sum=" << setw(9) << d_sum 
+         << ", best_err=" << setw(9) << best_error 
          << ", MSE=" << setw(9) << get_mse() 
          << ", p={" 
           << setw(5)<< params[0] << ", " 
@@ -106,9 +110,12 @@ public:
     return mse / cur_iter;
   }
 
-  double mse = 0.0;
+  int cur_iter = 0;
 
-  const double desired_speed = 20;
+  PID steer_pid = PID(0.1, 0, 0.1);
+
+private:
+  const int num_iter;
 
   // [Kp, Ki, Kd]
   vector<double> params = {0.1, 0, 0.1};
@@ -116,30 +123,27 @@ public:
   vector<double> d_dir = {1, -2, 1};
 
   int stage_no = 0;
-
-  const int num_iter = 500;
-  // const int num_iter = 4500; // full loop at 20 MPH
-  int cur_iter = 0;
-
-  const int max_param_idx = params.size();
-  int param_idx = 0; // index of a paremeter to tune
-
-  const int max_dir_idx = d_dir.size();
-  int dir_idx = 0;
+  double mse = 0.0;
 
   double best_error = -1; // initial state
 
-  PID steer_pid = PID(0.1, 0, 0.1);
+  const int max_dir_idx = d_dir.size();
+  int dir_idx = 0;  
+
+  const int max_param_idx = params.size();
+  int param_idx = 0; // index of a paremeter to tune  
 };
 
 int main() {
   uWS::Hub h;
 
-  Context ctx;
+  const int num_iter = 2500;
+  // const int num_iter = 4500; // full loop at 20 MPH
+  Twiddle twiddle(num_iter);
 
   PID speed_pid(0.3, 0, 0);
 
-  h.onMessage([&ctx, &speed_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
+  h.onMessage([&twiddle, &speed_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -156,26 +160,24 @@ int main() {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<string>());
           double speed = std::stod(j[1]["speed"].get<string>());
-          double angle = std::stod(j[1]["steering_angle"].get<string>());
+          // double angle = std::stod(j[1]["steering_angle"].get<string>());
 
-          double speed_cte = speed - ctx.desired_speed;
+          const double desired_speed = 20;
+          double speed_cte = speed - desired_speed;
           speed_pid.UpdateError(speed_cte);
           double throttle = -speed_pid.TotalError();
           
-          ctx.cur_iter++;
-          // std::cout << "iter=" << ctx.cur_iter << ", MSE=" << ctx.get_mse() << std::endl;
+          twiddle.cur_iter++;
 
-          ctx.steer_pid.UpdateError(cte);
-          double steer_value = -ctx.steer_pid.TotalError();
-          // std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          twiddle.steer_pid.UpdateError(cte);
+          double steer_value = -twiddle.steer_pid.TotalError();
 
-          ctx.update_mse(cte);
+          twiddle.update_mse(cte);
 
           bool reset = false;
-          if (ctx.stage_completed()) {
-            //std::cout << "Stage completed. Reset state. Number of iterations per run=" << ctx.num_iter << std::endl;
+          if (twiddle.stage_completed()) {
             reset = true;
-            ctx.next_stage();
+            twiddle.next_stage();
           }
           
           string msg;
