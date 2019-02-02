@@ -141,9 +141,10 @@ int main() {
   // const int num_iter = 4500; // full loop at 20 MPH
   Twiddle twiddle(num_iter);
 
+  const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
 
-  h.onMessage([&twiddle, &speed_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
+  h.onMessage([&twiddle, &speed_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -162,7 +163,6 @@ int main() {
           double speed = std::stod(j[1]["speed"].get<string>());
           // double angle = std::stod(j[1]["steering_angle"].get<string>());
 
-          const double desired_speed = 20;
           double speed_cte = speed - desired_speed;
           speed_pid.UpdateError(speed_cte);
           double throttle = -speed_pid.TotalError();
