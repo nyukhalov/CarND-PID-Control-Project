@@ -106,7 +106,7 @@ public:
 
   void force_stop_stage() {
     cur_iter = num_iter;
-    mse = 999999999;
+    mse = best_error * num_iter * 2; // must be always bigger than best_error
   }
 
   void update_mse(double cte) {
