@@ -144,8 +144,8 @@ private:
 int main() {
   uWS::Hub h;
 
-  const int num_iter = 2500;
-  // const int num_iter = 4500; // full loop at 20 MPH
+  // const int num_iter = 2500;
+  const int num_iter = 4500; // full loop at 20 MPH
   Twiddle twiddle(num_iter);
 
   int stuck_counter = 0;
