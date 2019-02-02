@@ -81,6 +81,8 @@ public:
       {
         double dir = d_dir[dir_idx];
         params[param_idx] += dir * d[param_idx];
+        d[param_idx] *= 0.9;
+
         param_idx = (param_idx + 1) % max_param_idx;  
         dir_idx = 0;
       }
