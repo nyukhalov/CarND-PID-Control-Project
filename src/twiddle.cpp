@@ -37,8 +37,8 @@ string hasData(string s) {
 class Twiddle {
 public:
 
-  Twiddle(int num_iter)
-  : num_iter(num_iter)
+  Twiddle(int num_iter, int num_iter_ignore)
+  : num_iter(num_iter), num_iter_ignore(num_iter_ignore)
   {}
 
   void next_stage() {
@@ -106,11 +106,13 @@ public:
 
   void force_stop_stage() {
     cur_iter = num_iter;
-    mse = best_error * num_iter * 2; // must be always bigger than best_error
+    mse = fabs(best_error * num_iter * 2); // must be always bigger than best_error
   }
 
   void update_mse(double cte) {
-    mse += cte*cte;
+    if (cur_iter > num_iter_ignore) {
+      mse += cte*cte;
+    }
   }
 
   double get_mse() {
@@ -119,14 +121,15 @@ public:
 
   int cur_iter = 0;
 
-  PID steer_pid = PID(0.1, 0, 0.1);
+  PID steer_pid = PID(1.5, 0.002, 10);
 
 private:
   const int num_iter;
+  const int num_iter_ignore;
 
   // [Kp, Ki, Kd]
-  vector<double> params = {0.1, 0, 0.1};
-  vector<double> d = {1, 1, 1};
+  vector<double> params = {1.5, 0.002, 10};
+  vector<double> d = {1, 0.001, 1};
   vector<double> d_dir = {1, -2, 1};
 
   int stage_no = 0;
@@ -146,7 +149,8 @@ int main() {
 
   // const int num_iter = 2500;
   const int num_iter = 7000;
-  Twiddle twiddle(num_iter);
+  const int num_iter_ignore = 300;
+  Twiddle twiddle(num_iter, num_iter_ignore);
 
   int stuck_counter = 0;
   const double desired_speed = 20;

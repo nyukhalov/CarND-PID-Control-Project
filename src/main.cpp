@@ -35,7 +35,7 @@ int main() {
 
   const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
-  PID steer_pid(0.1, 0, 0.1);
+  PID steer_pid(1.5, 0.002, 10);
 
   h.onMessage([&speed_pid, &steer_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
@@ -70,11 +70,24 @@ int main() {
           double steer_value = -steer_pid.TotalError();
           double throttle = -speed_pid.TotalError();
 
+          if (steer_value > 1) steer_value = 1;
+          else if (steer_value < -1) steer_value = -1;
+
+          double cur_steering = (angle / 25.0);
+          double steer_diff = steer_value - cur_steering;
+          double max_steer_diff = 0.2;
+
+          if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
+          else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;
+
+          double new_steer_value = cur_steering + steer_diff;
+
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " Cur Steering: " << cur_steering 
+                    << " diff: " << steer_diff << " New Steering Value: " << new_steer_value <<  std::endl;
 
           json msgJson;
-          msgJson["steering_angle"] = steer_value;
+          msgJson["steering_angle"] = new_steer_value;
           msgJson["throttle"] = throttle;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
