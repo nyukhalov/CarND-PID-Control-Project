@@ -35,7 +35,7 @@ int main() {
 
   const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
-  PID steer_pid(1.5, 0.002, 10);
+  PID steer_pid(0.2, 0.0005, 4.5);
 
   h.onMessage([&speed_pid, &steer_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
@@ -75,7 +75,7 @@ int main() {
 
           double cur_steering = (angle / 25.0);
           double steer_diff = steer_value - cur_steering;
-          double max_steer_diff = 0.2;
+          double max_steer_diff = 0.4;
 
           if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
           else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;

@@ -173,7 +173,7 @@ int main() {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<string>());
           double speed = std::stod(j[1]["speed"].get<string>());
-          // double angle = std::stod(j[1]["steering_angle"].get<string>());
+          double angle = std::stod(j[1]["steering_angle"].get<string>());
 
           if (speed <= 5) stuck_counter++;
           if (stuck_counter >= 200) {
@@ -196,11 +196,23 @@ int main() {
           twiddle.steer_pid.UpdateError(cte);
           double steer_value = -twiddle.steer_pid.TotalError();
 
+          if (steer_value > 1) steer_value = 1;
+          else if (steer_value < -1) steer_value = -1;
+
+          double cur_steering = (angle / 25.0);
+          double steer_diff = steer_value - cur_steering;
+          double max_steer_diff = 0.2;
+
+          if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
+          else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;
+
+          double new_steer_value = cur_steering + steer_diff;          
+
           twiddle.update_mse(cte);
           
           string msg;
           json msgJson;
-          msgJson["steering_angle"] = steer_value;
+          msgJson["steering_angle"] = new_steer_value;
           msgJson["throttle"] = throttle;
           msg = "42[\"steer\"," + msgJson.dump() + "]";
 
