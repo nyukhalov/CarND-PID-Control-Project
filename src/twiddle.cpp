@@ -121,15 +121,15 @@ public:
 
   int cur_iter = 0;
 
-  PID steer_pid = PID(1.5, 0.002, 10);
+  PID steer_pid = PID(0.2, 0.0005, 4.5);
 
 private:
   const int num_iter;
   const int num_iter_ignore;
 
   // [Kp, Ki, Kd]
-  vector<double> params = {1.5, 0.002, 10};
-  vector<double> d = {1, 0.001, 1};
+  vector<double> params = {0.2, 0.0005, 4.5};
+  vector<double> d = {0.5, 0.0005, 1};
   vector<double> d_dir = {1, -2, 1};
 
   int stage_no = 0;
@@ -147,8 +147,8 @@ private:
 int main() {
   uWS::Hub h;
 
-  // const int num_iter = 2500;
-  const int num_iter = 7000;
+  const int num_iter = 4000;
+  // const int num_iter = 7000;
   const int num_iter_ignore = 300;
   Twiddle twiddle(num_iter, num_iter_ignore);
 
@@ -176,7 +176,7 @@ int main() {
           double angle = std::stod(j[1]["steering_angle"].get<string>());
 
           if (speed <= 5) stuck_counter++;
-          if (stuck_counter >= 200) {
+          if (stuck_counter >= 300) {
             stuck_counter = 0;
             twiddle.force_stop_stage();
           }
@@ -192,6 +192,7 @@ int main() {
           double throttle = -speed_pid.TotalError();
           
           twiddle.cur_iter++;
+          // std::cout << twiddle.cur_iter << std::endl;
 
           twiddle.steer_pid.UpdateError(cte);
           double steer_value = -twiddle.steer_pid.TotalError();
@@ -201,7 +202,7 @@ int main() {
 
           double cur_steering = (angle / 25.0);
           double steer_diff = steer_value - cur_steering;
-          double max_steer_diff = 0.2;
+          double max_steer_diff = 0.4;
 
           if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
           else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;

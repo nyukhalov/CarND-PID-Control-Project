@@ -35,9 +35,13 @@ int main() {
 
   const double desired_speed = 20;
   PID speed_pid(0.3, 0, 0);
-  PID steer_pid(0.2, 0.0005, 4.5);
 
-  h.onMessage([&speed_pid, &steer_pid, desired_speed](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
+  PID steer_pid(0.12, 0.0005, 3.8);
+  double lowpass_gain = .2;
+
+  double prev_steer_angle;
+
+  h.onMessage([&speed_pid, &steer_pid, &prev_steer_angle, desired_speed, lowpass_gain](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -73,21 +77,16 @@ int main() {
           if (steer_value > 1) steer_value = 1;
           else if (steer_value < -1) steer_value = -1;
 
-          double cur_steering = (angle / 25.0);
-          double steer_diff = steer_value - cur_steering;
-          double max_steer_diff = 0.4;
+          double g = 1 - lowpass_gain;
+          double sv = lowpass_gain*steer_value + g*prev_steer_angle;
 
-          if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
-          else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;
-
-          double new_steer_value = cur_steering + steer_diff;
+          prev_steer_angle = sv;
 
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " Cur Steering: " << cur_steering 
-                    << " diff: " << steer_diff << " New Steering Value: " << new_steer_value <<  std::endl;
+          // std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
           json msgJson;
-          msgJson["steering_angle"] = new_steer_value;
+          msgJson["steering_angle"] = sv;
           msgJson["throttle"] = throttle;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
