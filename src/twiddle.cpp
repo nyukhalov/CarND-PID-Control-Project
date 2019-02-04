@@ -147,7 +147,7 @@ private:
 int main() {
   uWS::Hub h;
 
-  const int num_iter = 4000;
+  const int num_iter = 3000;
   // const int num_iter = 7000;
   const int num_iter_ignore = 200;
   Twiddle twiddle(num_iter, num_iter_ignore);
