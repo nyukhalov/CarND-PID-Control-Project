@@ -65,14 +65,14 @@ public:
     double err = get_mse();
     if (best_error < 0 || err < best_error) 
     {
-      best_error = err;
-      dir_idx = 0;
-      
       // it is not the first run
       if (best_error >= 0) {
         d[param_idx] *= 1.1;
         param_idx = (param_idx + 1) % max_param_idx;
       }
+
+      best_error = err;
+      dir_idx = 0;
     }
     else
     {
@@ -121,15 +121,15 @@ public:
 
   int cur_iter = 0;
 
-  PID steer_pid = PID(0.2, 0.0005, 4.5);
+  PID steer_pid = PID(0.12, 0.0005, 3.8);
 
 private:
   const int num_iter;
   const int num_iter_ignore;
 
   // [Kp, Ki, Kd]
-  vector<double> params = {0.2, 0.0005, 4.5};
-  vector<double> d = {0.5, 0.0005, 1};
+  vector<double> params = {0.12, 0.0005, 3.8};
+  vector<double> d = {0.1, 0.0005, 1};
   vector<double> d_dir = {1, -2, 1};
 
   int stage_no = 0;
@@ -149,14 +149,17 @@ int main() {
 
   const int num_iter = 4000;
   // const int num_iter = 7000;
-  const int num_iter_ignore = 300;
+  const int num_iter_ignore = 200;
   Twiddle twiddle(num_iter, num_iter_ignore);
 
   int stuck_counter = 0;
-  const double desired_speed = 20;
-  PID speed_pid(0.3, 0, 0);
+  const double desired_speed = 30;
+  PID speed_pid(0.9, 0.0001, 0);
 
-  h.onMessage([&twiddle, &speed_pid, desired_speed, &stuck_counter](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
+  double lowpass_gain = .3;
+  double prev_steer_angle = 0;  
+
+  h.onMessage([&twiddle, &speed_pid, desired_speed, &stuck_counter, lowpass_gain, &prev_steer_angle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -165,6 +168,7 @@ int main() {
       auto s = hasData(string(data).substr(0, length));
 
       if (s != "") {
+        
         auto j = json::parse(s);
 
         string event = j[0].get<string>();
@@ -175,8 +179,8 @@ int main() {
           double speed = std::stod(j[1]["speed"].get<string>());
           double angle = std::stod(j[1]["steering_angle"].get<string>());
 
-          if (speed <= 5) stuck_counter++;
-          if (stuck_counter >= 300) {
+          if (speed <= 2) stuck_counter++;
+          if (stuck_counter >= 500) {
             stuck_counter = 0;
             twiddle.force_stop_stage();
           }
@@ -200,20 +204,16 @@ int main() {
           if (steer_value > 1) steer_value = 1;
           else if (steer_value < -1) steer_value = -1;
 
-          double cur_steering = (angle / 25.0);
-          double steer_diff = steer_value - cur_steering;
-          double max_steer_diff = 0.4;
+          double g = 1 - lowpass_gain;
+          steer_value = lowpass_gain*steer_value + g*prev_steer_angle;
 
-          if (steer_diff > max_steer_diff) steer_diff = max_steer_diff;
-          else if (steer_diff < -max_steer_diff) steer_diff = -max_steer_diff;
-
-          double new_steer_value = cur_steering + steer_diff;          
+          prev_steer_angle = steer_value;
 
           twiddle.update_mse(cte);
           
           string msg;
           json msgJson;
-          msgJson["steering_angle"] = new_steer_value;
+          msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle;
           msg = "42[\"steer\"," + msgJson.dump() + "]";
 
@@ -221,7 +221,7 @@ int main() {
             msg = "42[\"reset\",{}]";
           }
 
-          //std::cout << msg << std::endl;
+          // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }  // end "telemetry" if
       } else {
