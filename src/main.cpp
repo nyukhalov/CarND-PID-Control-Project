@@ -33,8 +33,8 @@ string hasData(string s) {
 int main() {
   uWS::Hub h;
 
-  const double desired_speed = 20;
-  PID speed_pid(0.3, 0, 0);
+  const double desired_speed = 30;
+  PID speed_pid(0.9, 0.0001, 0);
 
   PID steer_pid(0.12, 0.0005, 3.8);
   double lowpass_gain = .3;
@@ -59,12 +59,6 @@ int main() {
           double cte = std::stod(j[1]["cte"].get<string>());
           double speed = std::stod(j[1]["speed"].get<string>());
           double angle = std::stod(j[1]["steering_angle"].get<string>());
-          /**
-           * TODO: Calculate steering value here, remember the steering value is
-           *   [-1, 1].
-           * NOTE: Feel free to play around with the throttle and speed.
-           *   Maybe use another PID controller to control the speed!
-           */
 
           double speed_cte = speed - desired_speed;
           
@@ -78,15 +72,15 @@ int main() {
           else if (steer_value < -1) steer_value = -1;
 
           double g = 1 - lowpass_gain;
-          double sv = lowpass_gain*steer_value + g*prev_steer_angle;
+          steer_value = lowpass_gain*steer_value + g*prev_steer_angle;
 
-          prev_steer_angle = sv;
+          prev_steer_angle = steer_value;
 
           // DEBUG
           // std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
           json msgJson;
-          msgJson["steering_angle"] = sv;
+          msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
