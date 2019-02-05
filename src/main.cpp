@@ -37,6 +37,7 @@ int main() {
   PID speed_pid(0.9, 0.0001, 0);
 
   PID steer_pid(0.12, 0.0005, 3.8);
+  // PID steer_pid(0.669082, 0.00207445, 16.5094);
   double lowpass_gain = .3;
 
   double prev_steer_angle;
