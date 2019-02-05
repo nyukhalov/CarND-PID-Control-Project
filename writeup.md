@@ -9,7 +9,7 @@ This writeup report describes the approach taken to successfully complete the pr
 The `src/` directory contains the source code of two applications:
 
 - `pid` - a program which uses PID controllers to control steering angle and throttle of a vehicle in the simulator.
-- `twiddle` - a program which contonuously run simulation for choosing the best hyperparameters for the steering PID controller.
+- `twiddle` - a program which continuously runs the simulation for choosing the best hyperparameters for the steering PID controller.
 
 The project's source code files are listed below:
 
@@ -44,7 +44,7 @@ double steer_value = -steer_pid.TotalError();
 
 The most difficult part of the project was to choose the right hyperparameters for the steering controller.
 
-The hyperparameters can be choosen manually or automatically, both method have pros and cons. For this project I chose the parameters manually, though I implemented the twiddle algorithm which in fact didn't work well.
+The hyperparameters can be chosen manually or automatically, both methods have pros and cons. For this project, I chose the parameters manually, though I implemented the twiddle algorithm which in fact didn't work well.
 
 The final hyperparameters' values which smoothly control the car at 20-40 MPH are listed below:
 
@@ -52,20 +52,20 @@ The final hyperparameters' values which smoothly control the car at 20-40 MPH ar
 - `K_i = 0.0005;`
 - `K_d = 3.8;`
 
-A higher speed (up to 60 MPH) is drivable, but not that smooth as safe. After 60 MPH the given controller is not able to control the car.
+A higher speed (up to 60 MPH) is drivable but not that smooth as safe. After 60 MPH the given controller is not able to control the car.
 
 ### Steering smoothing
 
-Using the total PID's error as the value of steering angle resulted in jerky driving. This could make the car not stable and it is simply not comfortable for people to experience such jerk while driving.
+Using the total PID's error as the value of steering angle resulted in jerky driving. This could make the car not stable and it is simply not comfortable for people to experience such a jerk while driving.
 
-In order to solve the issue I used low-pass filter to filter spikes of steering angle values.
+In order to solve the issue, I used a low-pass filter to filter spikes of steering angle values.
 
-The filter's coefficients were choosen manually after several experiments. The values are:
+The filter's coefficients were chosen manually after several experiments. The values are:
 
 - current value gain: `0.3`
 - previous value gain: `1-0.3=0.7`
 
-After implementing the filter the car started driving much much smooth, but lost a bit of responsiveness.
+After implementing the filter the car started driving much smoother but lost a bit of responsiveness.
 
 ### Choosing PID hyperparameters
 
@@ -78,7 +78,7 @@ The algorithm I followed to manually choose the hyperparameters:
 
 ### Twiddle
 
-The manual approach described above takes a lot of human time. In order to speed up this process I implemented an automated solution based on the twiddle algorithm given in the classroom.
+The manual approach described above takes a lot of human time. In order to speed up this process, I implemented an automated solution based on the twiddle algorithm given in the classroom.
 
 The `twiddle` program is a client for the simulator which uses twiddle to choose the best hyperparameters.
 
@@ -97,7 +97,7 @@ stage_no=608  , d_sum=0.000168015, best_err=0.0229817, MSE=0.0460843, p={0.66908
 stage_no=609  , d_sum=0.000152171, best_err=0.0229817, MSE=0.0452825, p={0.669091, 0.00207445, 16.5094}, d={9.54586e-06, 2.61417e-08, 0.000142599}
 ```
 
-The twiddle algorithms chooses the hyperparameters' values in order to minimaze the MSE error. Its results, however, were not good. A PID controller based on the parameters chosen by the algorithm was very jerky. Most likely people won't like to be driving by such a controller due to the lack of smoothness.
+The twiddle algorithm chooses the hyperparameters' values in order to minimize the MSE error. Its results, however, were not good. A PID controller based on the parameters chosen by the algorithm was very jerky. Most likely people won't like to be driving by such a controller due to the lack of smoothness.
 
 ## Speed controller
 
@@ -109,10 +109,10 @@ I used the PID controller described above to control car's speed. The gain param
 
 ## Conclusion
 
-In this project I implemented and tuned PID controller which successfully drove a car thoughout a virtual track in the simulator at 30 MPH.
+In this project, I implemented and tuned PID controller which successfully drove a car throughout a virtual track in the simulator at 30 MPH.
 
-The low-pass filter was used to tolarate spikes in steering values which made the car driving much more smooth.
+The low-pass filter was used to tolerate spikes in steering values which made the car driving much more smooth.
 
 The `twiddle` algorithm along with the ability of the simulator to programmatically restart car's position allowed me to implement an automated solution for choosing controller's hyperparameters.
 
-The final hyperparameters' values were choosen manually. The knowledle about the parameters' nature helped to find the right values faster.
+The final hyperparameters' values were chosen manually. The knowledge about the parameters' nature helped to find the right values faster.
