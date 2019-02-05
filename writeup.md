@@ -116,3 +116,9 @@ The low-pass filter was used to tolerate spikes in steering values which made th
 The `twiddle` algorithm along with the ability of the simulator to programmatically restart car's position allowed me to implement an automated solution for choosing controller's hyperparameters.
 
 The final hyperparameters' values were chosen manually. The knowledge about the parameters' nature helped to find the right values faster.
+
+## Further improvements
+
+In order to drive at a higher speed, one must find different hyperparameters' values. Probably, it is possible to find a function `K_p, K_i, K_d = f(speed)` which for the given speed will return the hyperparameters' values. Such adaptive parameters could give better smoothing and fewer errors.
+
+The twiddle algorithm can be improved by taking into account steering smoothness while calculating the error.
