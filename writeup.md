@@ -103,8 +103,8 @@ The twiddle algorithms chooses the hyperparameters' values in order to minimaze 
 
 I used the PID controller described above to control car's speed. The gain parameters were choosen manually after several experiments:
 
-- `K_p = 0.3`
-- `K_i = 0`
+- `K_p = 0.9`
+- `K_i = 0.0001`
 - `K_d = 0`
 
 ## Conclusion
